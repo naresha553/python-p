@@ -1,1 +1,2 @@
 
+Amazon Linux 2 usually comes with OpenSSL 1.0.2, but for Python 3.10.11, you should use OpenSSL 1.1.1 or later. Follow these steps to install OpenSSL 1.1.1:

@@ -1,0 +1,166 @@
+
+
+To install Python 3.10.11 and OpenSSL 1.1.1 in a custom directory (/apps/software) on Amazon Linux 2023, follow these steps:
+
+Step-by-Step Guide to Install Python 3.10.11 with OpenSSL 1.1.1
+1. Install Necessary Dependencies
+Ensure that you have the required development tools and libraries installed:
+
+bash
+Copy code
+sudo yum groupinstall "Development Tools" -y
+sudo yum install wget gcc make zlib-devel bzip2-devel libffi-devel -y
+2. Download and Install OpenSSL 1.1.1
+Create the installation directory:
+
+bash
+Copy code
+sudo mkdir -p /apps/software
+sudo chown $(whoami) /apps/software
+Download and extract OpenSSL 1.1.1:
+
+bash
+Copy code
+cd /usr/src
+wget https://www.openssl.org/source/openssl-1.1.1l.tar.gz
+tar xzf openssl-1.1.1l.tar.gz
+cd openssl-1.1.1l
+Configure, build, and install OpenSSL:
+
+bash
+Copy code
+./config --prefix=/apps/software/openssl --openssldir=/apps/software/openssl shared zlib
+make
+make install
+Update the shared library cache:
+
+bash
+Copy code
+sudo sh -c "echo /apps/software/openssl/lib > /etc/ld.so.conf.d/openssl-1.1.1l.conf"
+sudo ldconfig -v
+3. Download and Install Python 3.10.11
+Download and extract Python 3.10.11:
+
+bash
+Copy code
+cd /usr/src
+wget https://www.python.org/ftp/python/3.10.11/Python-3.10.11.tgz
+tar xzf Python-3.10.11.tgz
+Set environment variables to use the new OpenSSL:
+
+bash
+Copy code
+export LD_LIBRARY_PATH=/apps/software/openssl/lib:$LD_LIBRARY_PATH
+export LDFLAGS="-L/apps/software/openssl/lib"
+export CPPFLAGS="-I/apps/software/openssl/include"
+export PKG_CONFIG_PATH="/apps/software/openssl/lib/pkgconfig"
+Create a separate build directory for Python:
+
+bash
+Copy code
+cd /usr/src/Python-3.10.11
+mkdir build
+cd build
+Configure, build, and install Python:
+
+bash
+Copy code
+../configure --prefix=/apps/software/python3.10.11 --with-openssl=/apps/software/openssl --enable-optimizations
+make
+make install
+4. Set Up Environment Variables
+Add the new Python and OpenSSL installations to your PATH:
+
+Add the following lines to your ~/.bashrc or ~/.bash_profile:
+
+bash
+Copy code
+export PATH=/apps/software/python3.10.11/bin:$PATH
+export LD_LIBRARY_PATH=/apps/software/openssl/lib:$LD_LIBRARY_PATH
+Apply the changes:
+
+bash
+Copy code
+source ~/.bashrc
+5. Verify Python and pip Installation
+Verify the Python installation:
+
+bash
+Copy code
+python3.10 --version
+You should see Python 3.10.11.
+
+Install pip (if not already installed):
+
+bash
+Copy code
+curl https://bootstrap.pypa.io/get-pip.py -o get-pip.py
+python3.10 get-pip.py
+Verify the pip installation:
+
+bash
+Copy code
+pip3.10 --version
+6. Verify SSL Module
+Ensure that the ssl module is available:
+
+bash
+Copy code
+python3.10 -m ssl
+Example Commands
+Here is a summary of the commands to install Python 3.10.11 and OpenSSL 1.1.1 in /apps/software:
+
+bash
+Copy code
+# Install necessary dependencies
+sudo yum groupinstall "Development Tools" -y
+sudo yum install wget gcc make zlib-devel bzip2-devel libffi-devel -y
+
+# Create the installation directory
+sudo mkdir -p /apps/software
+sudo chown $(whoami) /apps/software
+
+# Download and install OpenSSL 1.1.1
+cd /usr/src
+wget https://www.openssl.org/source/openssl-1.1.1l.tar.gz
+tar xzf openssl-1.1.1l.tar.gz
+cd openssl-1.1.1l
+./config --prefix=/apps/software/openssl --openssldir=/apps/software/openssl shared zlib
+make
+make install
+sudo sh -c "echo /apps/software/openssl/lib > /etc/ld.so.conf.d/openssl-1.1.1l.conf"
+sudo ldconfig -v
+
+# Download and install Python 3.10.11
+cd /usr/src
+wget https://www.python.org/ftp/python/3.10.11/Python-3.10.11.tgz
+tar xzf Python-3.10.11.tgz
+cd Python-3.10.11
+mkdir build
+cd build
+
+# Set environment variables to use the new OpenSSL
+export LD_LIBRARY_PATH=/apps/software/openssl/lib:$LD_LIBRARY_PATH
+export LDFLAGS="-L/apps/software/openssl/lib"
+export CPPFLAGS="-I/apps/software/openssl/include"
+export PKG_CONFIG_PATH="/apps/software/openssl/lib/pkgconfig"
+
+# Configure, build, and install Python
+../configure --prefix=/apps/software/python3.10.11 --with-openssl=/apps/software/openssl --enable-optimizations
+make
+make install
+
+# Set up environment variables
+echo 'export PATH=/apps/software/python3.10.11/bin:$PATH' >> ~/.bashrc
+echo 'export LD_LIBRARY_PATH=/apps/software/openssl/lib:$LD_LIBRARY_PATH' >> ~/.bashrc
+source ~/.bashrc
+
+# Verify Python and pip installation
+python3.10 --version
+curl https://bootstrap.pypa.io/get-pip.py -o get-pip.py
+python3.10 get-pip.py
+pip3.10 --version
+
+# Verify the SSL module
+python3.10 -m ssl
+By following these steps, you should be able to install Python 3.10.11 and OpenSSL 1.1.1 in the same user space folder /apps/software on Amazon Linux 2023. If you encounter any specific issues during this process, please provide the details for further assistance.

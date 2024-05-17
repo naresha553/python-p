@@ -1,0 +1,4 @@
+    - name: Copy file using curl
+      command: "curl -o {{ destination_file }} file://{{ source_file }}"
+      args:
+        creates: "{{ destination_file }}"

@@ -1,0 +1,110 @@
+---
+- name: Install OpenSSL and Python
+  hosts: all
+  become: yes
+
+  vars:
+    openssl_version: "1.1.1l"
+    python_version: "3.10.11"
+    install_dir: "/apps/software"
+
+  tasks:
+    - name: Install development tools and dependencies
+      yum:
+        name:
+          - "@Development Tools"
+          - wget
+          - gcc
+          - make
+          - zlib-devel
+          - bzip2-devel
+          - libffi-devel
+        state: present
+
+    - name: Create installation directory
+      file:
+        path: "{{ install_dir }}"
+        state: directory
+        owner: "{{ ansible_user }}"
+        group: "{{ ansible_user }}"
+
+    - name: Download OpenSSL
+      get_url:
+        url: "https://www.openssl.org/source/openssl-{{ openssl_version }}.tar.gz"
+        dest: "/usr/src/openssl-{{ openssl_version }}.tar.gz"
+
+    - name: Extract OpenSSL
+      unarchive:
+        src: "/usr/src/openssl-{{ openssl_version }}.tar.gz"
+        dest: "/usr/src/"
+        remote_src: yes
+
+    - name: Install OpenSSL
+      shell: |
+        cd /usr/src/openssl-{{ openssl_version }}
+        ./config --prefix={{ install_dir }}/openssl --openssldir={{ install_dir }}/openssl shared zlib
+        make
+        make install
+        echo "{{ install_dir }}/openssl/lib" > /etc/ld.so.conf.d/openssl-{{ openssl_version }}.conf
+        ldconfig
+
+    - name: Download Python
+      get_url:
+        url: "https://www.python.org/ftp/python/{{ python_version }}/Python-{{ python_version }}.tgz"
+        dest: "/usr/src/Python-{{ python_version }}.tgz"
+
+    - name: Extract Python
+      unarchive:
+        src: "/usr/src/Python-{{ python_version }}.tgz"
+        dest: "/usr/src/"
+        remote_src: yes
+
+    - name: Build and install Python
+      shell: |
+        export LD_LIBRARY_PATH={{ install_dir }}/openssl/lib:$LD_LIBRARY_PATH
+        export LDFLAGS="-L{{ install_dir }}/openssl/lib"
+        export CPPFLAGS="-I{{ install_dir }}/openssl/include"
+        export PKG_CONFIG_PATH="{{ install_dir }}/openssl/lib/pkgconfig"
+        cd /usr/src/Python-{{ python_version }}
+        mkdir build
+        cd build
+        ../configure --prefix={{ install_dir }}/python{{ python_version }} --with-openssl={{ install_dir }}/openssl --enable-optimizations
+        make
+        make install
+
+    - name: Update PATH environment variable
+      lineinfile:
+        path: ~/.bashrc
+        line: 'export PATH={{ install_dir }}/python{{ python_version }}/bin:$PATH'
+        state: present
+
+    - name: Update LD_LIBRARY_PATH environment variable
+      lineinfile:
+        path: ~/.bashrc
+        line: 'export LD_LIBRARY_PATH={{ install_dir }}/openssl/lib:$LD_LIBRARY_PATH'
+        state: present
+
+    - name: Source bashrc
+      shell: source ~/.bashrc
+
+    - name: Verify Python installation
+      command: python3.10 --version
+      register: python_version_output
+
+    - debug:
+        msg: "Python version: {{ python_version_output.stdout }}"
+
+    - name: Install pip
+      shell: |
+        curl https://bootstrap.pypa.io/get-pip.py -o get-pip.py
+        python3.10 get-pip.py
+
+    - name: Verify pip installation
+      command: pip3.10 --version
+      register: pip_version_output
+
+    - debug:
+        msg: "Pip version: {{ pip_version_output.stdout }}"
+
+    - name: Verify SSL module
+      command: python3.10 -m ssl

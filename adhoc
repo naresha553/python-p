@@ -1,3 +1,13 @@
+  vars:
+    source_file: "/path/to/source_file"
+    destination_file: "/path/to/destination_file"
+
+  tasks:
+    - name: Ensure curl is installed
+      yum:
+        name: curl
+        state: present
+
     - name: Copy file using curl
       command: "curl -o {{ destination_file }} file://{{ source_file }}"
       args:

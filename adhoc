@@ -12,3 +12,10 @@
       command: "curl -o {{ destination_file }} file://{{ source_file }}"
       args:
         creates: "{{ destination_file }}"
+
+
+
+
+
+ register: openssl_install_result
+  changed_when: "'error' not in openssl_install_result.stderr and openssl_install_result.rc == 0"

@@ -1,0 +1,117 @@
+The tarball available at "https://www.openssl.org/source/openssl-{{ openssl_version }}.tar.gz" contains the source code for OpenSSL, which includes the necessary files to build and install both the runtime libraries and the development files (headers, libraries) that are typically provided by the openssl-devel package in pre-compiled form. When you compile and install OpenSSL from this tarball, it includes the development files needed for building applications that link against OpenSSL.
+
+Here’s an updated and slightly refined Ansible playbook that ensures the development files are correctly installed and environment variables are set:
+
+yaml
+Copy code
+---
+- name: Install Perl 5.38.2 and OpenSSL manually on Amazon Linux 2
+  hosts: all
+  become: yes
+  vars:
+    perl_version: "5.38.2"
+    perl_tarball_url: "https://your-jfrog-instance/path/to/perl-5.38.2.tar.gz"
+    openssl_version: "1.1.1k"  # Specify the OpenSSL version you need
+    openssl_tarball_url: "https://www.openssl.org/source/openssl-{{ openssl_version }}.tar.gz"
+    install_path: "/opt/perl-{{ perl_version }}"
+  tasks:
+    - name: Ensure necessary packages are installed on Amazon Linux 2
+      yum:
+        name:
+          - gcc
+          - make
+          - ncurses-devel
+          - gdbm-devel
+          - bzip2-devel
+          - readline-devel
+          - libffi-devel
+          - zlib-devel
+          - wget
+          - perl
+        state: present
+
+    - name: Download OpenSSL tarball
+      get_url:
+        url: "{{ openssl_tarball_url }}"
+        dest: "/tmp/openssl-{{ openssl_version }}.tar.gz"
+
+    - name: Extract OpenSSL tarball
+      unarchive:
+        src: "/tmp/openssl-{{ openssl_version }}.tar.gz"
+        dest: "/tmp"
+        remote_src: yes
+
+    - name: Compile and install OpenSSL
+      shell: |
+        ./config --prefix=/usr/local/openssl --openssldir=/usr/local/openssl shared zlib
+        make
+        make install
+      args:
+        chdir: "/tmp/openssl-{{ openssl_version }}"
+
+    - name: Set environment variables for OpenSSL
+      lineinfile:
+        path: /etc/profile
+        line: |
+          export PATH=/usr/local/openssl/bin:$PATH
+          export LD_LIBRARY_PATH=/usr/local/openssl/lib:$LD_LIBRARY_PATH
+          export CFLAGS="-I/usr/local/openssl/include"
+          export LDFLAGS="-L/usr/local/openssl/lib"
+        state: present
+
+    - name: Source profile to update environment variables
+      shell: source /etc/profile
+      args:
+        executable: /bin/bash
+
+    - name: Download Perl tarball from JFrog
+      get_url:
+        url: "{{ perl_tarball_url }}"
+        dest: "/tmp/perl-{{ perl_version }}.tar.gz"
+
+    - name: Extract Perl tarball
+      unarchive:
+        src: "/tmp/perl-{{ perl_version }}.tar.gz"
+        dest: "/tmp"
+        remote_src: yes
+
+    - name: Configure Perl
+      command: ./Configure -des -Dprefix={{ install_path }}
+      args:
+        chdir: "/tmp/perl-{{ perl_version }}"
+        creates: "{{ install_path }}/bin/perl"
+      environment:
+        CFLAGS: "-I/usr/local/openssl/include"
+        LDFLAGS: "-L/usr/local/openssl/lib"
+
+    - name: Compile Perl
+      make:
+        chdir: "/tmp/perl-{{ perl_version }}"
+
+    - name: Install Perl
+      make:
+        chdir: "/tmp/perl-{{ perl_version }}"
+        target: install
+
+    - name: Clean up
+      file:
+        path: "/tmp/perl-{{ perl_version }}"
+        state: absent
+        recurse: yes
+
+    - name: Ensure Perl is in PATH
+      lineinfile:
+        path: /etc/profile
+        line: "export PATH={{ install_path }}/bin:$PATH"
+        state: present
+
+    - name: Source profile to update PATH
+      shell: source /etc/profile
+      args:
+        executable: /bin/bash
+In this playbook:
+
+OpenSSL is downloaded, compiled, and installed to /usr/local/openssl.
+Environment variables are set to include the new OpenSSL installation paths.
+Perl is then configured, compiled, and installed with the compiler flags set to use the newly installed OpenSSL development files.
+Ensure to replace the placeholders with the actual URLs and versions as needed.

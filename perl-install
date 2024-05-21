@@ -1,0 +1,67 @@
+---
+- name: Install Perl 5.38.2 on Amazon Linux 2
+  hosts: all
+  become: yes
+  vars:
+    perl_version: "5.38.2"
+    tarball_url: "https://your-jfrog-instance/path/to/perl-5.38.2.tar.gz"
+    install_path: "/opt/perl-{{ perl_version }}"
+  tasks:
+    - name: Ensure necessary packages are installed on Amazon Linux 2
+      yum:
+        name:
+          - gcc
+          - make
+          - ncurses-devel
+          - gdbm-devel
+          - openssl-devel
+          - libdb-devel
+          - bzip2-devel
+          - readline-devel
+          - libffi-devel
+          - zlib-devel
+          - wget
+        state: present
+
+    - name: Download Perl tarball from JFrog
+      get_url:
+        url: "{{ tarball_url }}"
+        dest: "/tmp/perl-{{ perl_version }}.tar.gz"
+
+    - name: Extract Perl tarball
+      unarchive:
+        src: "/tmp/perl-{{ perl_version }}.tar.gz"
+        dest: "/tmp"
+        remote_src: yes
+
+    - name: Configure Perl
+      command: ./Configure -des -Dprefix={{ install_path }}
+      args:
+        chdir: "/tmp/perl-{{ perl_version }}"
+        creates: "{{ install_path }}/bin/perl"
+
+    - name: Compile Perl
+      make:
+        chdir: "/tmp/perl-{{ perl_version }}"
+
+    - name: Install Perl
+      make:
+        chdir: "/tmp/perl-{{ perl_version }}"
+        target: install
+
+    - name: Clean up
+      file:
+        path: "/tmp/perl-{{ perl_version }}"
+        state: absent
+        recurse: yes
+
+    - name: Ensure Perl is in PATH
+      lineinfile:
+        path: /etc/profile
+        line: "export PATH={{ install_path }}/bin:$PATH"
+        state: present
+
+    - name: Source profile to update PATH
+      shell: source /etc/profile
+      args:
+        executable: /bin/bash
